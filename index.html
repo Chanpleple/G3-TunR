@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>G3 BLE Tuner</title>
+<style>
+:root{--bg:#0d0f12;--panel:#151a20;--line:#242c36;--fg:#dfe6ee;--dim:#8b98a7;--acc:#39d3a0;--warn:#e8b24a;--bad:#e8685f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 -apple-system,Segoe UI,Roboto,sans-serif}
+header{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+h1{font-size:14px;margin:0;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);font-weight:600}
+button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:7px;padding:7px 11px;font:inherit;cursor:pointer}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.p{background:var(--acc);color:#04140e;border-color:var(--acc);font-weight:600}
+#status{margin-left:auto;font:12px/1 ui-monospace,Menlo,monospace;padding:5px 9px;border-radius:99px;border:1px solid var(--line);color:var(--dim)}
+#status.on{color:var(--acc);border-color:#1e5c47}
+nav{display:flex;overflow:auto;border-bottom:1px solid var(--line);background:var(--panel)}
+nav button{border:0;border-radius:0;background:none;color:var(--dim);padding:11px 13px;font-size:12.5px;letter-spacing:.04em}
+nav button[aria-selected=true]{color:var(--fg);box-shadow:inset 0 -2px 0 var(--acc)}
+main{padding:12px;max-width:760px;margin:0 auto}
+section{display:none}
+section.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin:0 0 12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+label{font-size:12px;color:var(--dim);display:block;margin:0 0 4px}
+input{background:#0b0e12;border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:8px;font:inherit;width:100%}
+input[type=checkbox]{width:auto}
+.g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+pre{background:#080a0d;border:1px solid var(--line);border-radius:8px;padding:9px;font:12px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-all;max-height:240px;overflow:auto;margin:8px 0 0;color:#9fb4c7}
+.note{font-size:12px;color:var(--dim);margin:6px 0 0}
+.warn{color:var(--warn)}
+.chk{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.chk:last-child{border:0}
+#log{font:11.5px/1.5 ui-monospace,Menlo,monospace;background:#080a0d;border-top:1px solid var(--line);padding:8px;max-height:150px;overflow:auto;white-space:pre-wrap;word-break:break-all;color:#7f8fa0}
+.tx{color:#6fb2ff}.rx{color:#57d69b}.er{color:#f08a80}.ok{color:var(--acc)}
+hr{border:0;border-top:1px solid var(--line);margin:10px 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>G3&nbsp;BLE&nbsp;Tuner</h1>
+  <button id="connect" class="p">Connect</button>
+  <button id="disconnect" disabled>Disconnect</button>
+  <span id="status">offline</span>
+</header>
+
+<nav>
+  <button data-tab="info" aria-selected="true">Info</button>
+  <button data-tab="speed">Speed</button>
+  <button data-tab="opts">Options</button>
+  <button data-tab="serial">Serial</button>
+  <button data-tab="console">Console</button>
+  <button data-tab="config">Config</button>
+</nav>
+
+<main>
+<section id="info" class="on">
+  <div class="card">
+    <div class="row">
+      <button id="readVer">Read versions</button>
+      <button id="readSn">Read serial</button>
+      <button id="ping">Ping</button>
+    </div>
+    <p class="note">If nothing answers, change the target address in Config (try 0x20, 0x21, 0x35, 0x3D) and watch the log.</p>
+    <pre id="infoOut">-</pre>
+  </div>
+</section>
+
+<section id="speed">
+  <div class="card">
+    <p class="note warn">Register IDs are <b>unverified on G3</b>. Confirm them with the sweep/diff tool before trusting writes.</p>
+    <div class="g" style="margin-top:10px">
+      <div><label>Eco km/h</label><input id="spEco" type="number" min="1" max="60" step="1"></div>
+      <div><label>Drive km/h</label><input id="spDrive" type="number" min="1" max="60" step="1"></div>
+      <div><label>Sport km/h</label><input id="spSport" type="number" min="1" max="60" step="1"></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button data-preset="20">20</button><button data-preset="22">22</button>
+      <button data-preset="25">25</button><button data-preset="30">30</button>
+      <button data-preset="35">35</button><button data-preset="40">40</button>
+      <button data-preset="45">45</button>
+    </div>
+    <hr>
+    <div class="row">
+      <button id="spRead">Read</button>
+      <button id="spApply" class="p">Apply</button>
+      <button id="spRestore">Restore backup</button>
+    </div>
+    <p class="note">Apply stores the raw previous values in local storage first, so a wrong map is recoverable.</p>
+  </div>
+</section>
+
+<section id="opts">
+  <div class="card" id="optList"></div>
+  <div class="row"><button id="optRead">Read</button><button id="optApply" class="p">Apply</button></div>
+</section>
+
+<section id="serial">
+  <div class="card">
+    <label>Current serial</label><pre id="snOut">-</pre>
+    <hr>
+    <label>Template (14 chars, + = random digit)</label>
+    <input id="snTpl" value="1CGCC++++C++++" spellcheck="false">
+    <div class="row" style="margin-top:10px">
+      <button id="snGen">Generate</button>
+      <button id="snWrite" class="p">Write serial</button>
+    </div>
+    <input id="snNew" placeholder="generated serial" spellcheck="false" style="margin-top:10px">
+    <p class="note warn">Changing the serial changes region. The key derives from the serial, so reconnect and re-read after writing. Rebind in the Segway app afterwards.</p>
+  </div>
+</section>
+
+<section id="console">
+  <div class="card">
+    <div class="g">
+      <div><label>src</label><input id="fSrc" value="0x3D" spellcheck="false"></div>
+      <div><label>dst</label><input id="fDst" value="0x35" spellcheck="false"></div>
+      <div><label>cmd</label><input id="fCmd" value="0x20" spellcheck="false"></div>
+    </div>
+    <div class="g" style="margin-top:8px">
+      <div><label>arg</label><input id="fArg" value="0x01" spellcheck="false"></div>
+      <div style="grid-column:span 2"><label>data hex</label><input id="fData" placeholder="10 3e" spellcheck="false"></div>
+    </div>
+    <div class="chk"><span>Encrypt frame</span><input id="fEnc" type="checkbox"></div>
+    <div class="row"><button id="fSend" class="p">Send frame</button></div>
+    <hr>
+    <div class="row">
+      <label style="margin:0">Sweep</label>
+      <input id="swFrom" value="0x00" style="width:80px" spellcheck="false">
+      <input id="swTo" value="0xFF" style="width:80px" spellcheck="false">
+      <button id="swRun">Read range</button>
+    </div>
+    <p class="note">Reads one byte per register. Change one setting in the official app, sweep again, compare — that is how the real IDs get found.</p>
+  </div>
+</section>
+
+<section id="config">
+  <div class="card">
+    <div class="g">
+      <div style="grid-column:span 3"><label>Service UUID</label><input id="cSvc" spellcheck="false"></div>
+      <div style="grid-column:span 3"><label>Write characteristic</label><input id="cTx" spellcheck="false"></div>
+      <div style="grid-column:span 3"><label>Notify characteristic</label><input id="cRx" spellcheck="false"></div>
+      <div style="grid-column:span 3"><label>Base AES key (hex, XORed with serial)</label><input id="cKey" spellcheck="false"></div>
+      <div><label>src</label><input id="cSrc" spellcheck="false"></div>
+      <div><label>dst</label><input id="cDst" spellcheck="false"></div>
+      <div><label>chunk</label><input id="cChunk" type="number" min="1" max="64"></div>
+    </div>
+    <hr>
+    <label>Register map (JSON: name → hex)</label>
+    <textarea id="cMap" rows="9" spellcheck="false" style="background:#0b0e12;border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:8px;font:12px ui-monospace,Menlo,monospace;width:100%"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button id="cSave" class="p">Save</button>
+      <button id="cReset">Reset defaults</button>
+    </div>
+  </div>
+</section>
+</main>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+
+const DEF = {
+  svc: "6e400001-b5a3-f393-e0a9-e50e24dcca9e",
+  tx:  "6e400002-b5a3-f393-e0a9-e50e24dcca9e",
+  rx:  "6e400003-b5a3-f393-e0a9-e50e24dcca9e",
+  key: "97CFB8026448724A24D3B8A3A7723706",
+  src: "0x3D", dst: "0x35", chunk: 20,
+  map: { "speed.eco":"0x60", "speed.drive":"0x61", "speed.sport":"0x62",
+         "cruise":"0x7C", "kers":"0x7B", "tailLight":"0x7D", "zeroStart":"0x7E" }
+};
+const CMD = { VER:0x20, SERIAL_R:0x21, REG_R:0x22, REG_W:0x23, SERIAL_W:0x26 };
+
+/* ---- AES-128, zero padding ---- */
+const SBOX=(()=>{const s="637c777bf26b6fc53001672bfed7ab76ca82c97dfa5947f0add4a2af9ca472c0b7fd9326363ff7cc34a5e5f171d8311504c723c31896059a071280e2eb27b27509832c1a1b6e5aa0523bd6b329e32f8453d100ed20fcb15b6acbbe394a4c58cfd0efaafb434d338545f9027f503c9fa851a3408f929d38f5bcb6da2110fff3d2cd0c13ec5f974417c4a77e3d645d197360814fdc222a908846eeb814de5e0bdbe0323a0a4906245cc2d3ac629195e479e7c8376d8dd54ea96c56f4ea657aae08ba78252e1ca6b4c6e8dd741f4bbd8b8a703eb5664803f60e613557b986c11d9ee1f8981169d98e949b1e87e9ce5528df8ca1890dbfe6426841992d0fb054bb16";const a=new Uint8Array(256);for(let i=0;i<256;i++)a[i]=parseInt(s.substr(i*2,2),16);return a;})();
+const INV=(()=>{const a=new Uint8Array(256);for(let i=0;i<256;i++)a[SBOX[i]]=i;return a;})();
+const xt=a=>((a<<1)^((a&0x80)?0x1b:0))&0xff;
+function mul(a,b){let r=0;while(b){if(b&1)r^=a;a=xt(a);b>>=1;}return r&0xff;}
+function expandKey(k){const w=new Uint8Array(176);w.set(k);let rc=1;
+  for(let i=16;i<176;i+=4){let t=[w[i-4],w[i-3],w[i-2],w[i-1]];
+    if(i%16===0){t=[t[1],t[2],t[3],t[0]].map(b=>SBOX[b]);t[0]^=rc;rc=xt(rc);}
+    for(let j=0;j<4;j++)w[i+j]=w[i-16+j]^t[j];}return w;}
+const ark=(s,w,r)=>{for(let i=0;i<16;i++)s[i]^=w[r*16+i];};
+const sub=s=>{for(let i=0;i<16;i++)s[i]=SBOX[s[i]];};
+const isub=s=>{for(let i=0;i<16;i++)s[i]=INV[s[i]];};
+function sr(s){let t;s=s;t=s[1];s[1]=s[5];s[5]=s[9];s[9]=s[13];s[13]=t;
+  t=s[2];s[2]=s[10];s[10]=t;t=s[6];s[6]=s[14];s[14]=t;
+  t=s[15];s[15]=s[11];s[11]=s[7];s[7]=s[3];s[3]=t;}
+function isr(s){let t;t=s[13];s[13]=s[9];s[9]=s[5];s[5]=s[1];s[1]=t;
+  t=s[2];s[2]=s[10];s[10]=t;t=s[6];s[6]=s[14];s[14]=t;
+  t=s[3];s[3]=s[7];s[7]=s[11];s[11]=s[15];s[15]=t;}
+function mc(s){for(let c=0;c<4;c++){const i=c*4,a=[s[i],s[i+1],s[i+2],s[i+3]],t=a[0]^a[1]^a[2]^a[3];
+  s[i]^=t^xt(a[0]^a[1]);s[i+1]^=t^xt(a[1]^a[2]);s[i+2]^=t^xt(a[2]^a[3]);s[i+3]^=t^xt(a[3]^a[0]);}}
+function imc(s){for(let c=0;c<4;c++){const i=c*4,a=[s[i],s[i+1],s[i+2],s[i+3]];
+  s[i]=mul(a[0],14)^mul(a[1],11)^mul(a[2],13)^mul(a[3],9);
+  s[i+1]=mul(a[0],9)^mul(a[1],14)^mul(a[2],11)^mul(a[3],13);
+  s[i+2]=mul(a[0],13)^mul(a[1],9)^mul(a[2],14)^mul(a[3],11);
+  s[i+3]=mul(a[0],11)^mul(a[1],13)^mul(a[2],9)^mul(a[3],14);}}
+function encBlock(w,inb){const s=Uint8Array.from(inb);ark(s,w,0);
+  for(let r=1;r<10;r++){sub(s);sr(s);mc(s);ark(s,w,r);}sub(s);sr(s);ark(s,w,10);return s;}
+function decBlock(w,inb){const s=Uint8Array.from(inb);ark(s,w,10);
+  for(let r=9;r>0;r--){isr(s);isub(s);ark(s,w,r);imc(s);}isr(s);isub(s);ark(s,w,0);return s;}
+function cbcEnc(w,iv,pt){const out=new Uint8Array(Math.ceil(pt.length/16)*16);let prev=iv;
+  for(let o=0;o<out.length;o+=16){const b=new Uint8Array(16);
+    for(let i=0;i<16;i++)b[i]=(pt[o+i]||0)^prev[i];const c=encBlock(w,b);out.set(c,o);prev=c;}return out;}
+function cbcDec(w,iv,ct){const out=new Uint8Array(ct.length);let prev=iv;
+  for(let o=0;o<ct.length;o+=16){const c=ct.subarray(o,o+16),d=decBlock(w,c);
+    for(let i=0;i<16;i++)out[o+i]=d[i]^prev[i];prev=c;}return out;}
+
+/* ---- protocol ---- */
+function crc16(b){let c=0xffff;for(const x of b){c^=x<<8;for(let i=0;i<8;i++)c=(c&0x8000)?((c<<1)^0x1021)&0xffff:(c<<1)&0xffff;}return c;}
+const hex=b=>[...b].map(x=>x.toString(16).padStart(2,"0")).join(" ");
+const ascii=b=>[...b].map(x=>x>=32&&x<127?String.fromCharCode(x):".").join("");
+const parseHex=s=>s.replace(/0x/gi,"").split(/[\s,]+/).filter(Boolean).map(x=>parseInt(x,16)&0xff);
+
+const S={dev:null,txC:null,rxC:null,enc:false,keyW:null,
+  cfg:JSON.parse(localStorage.getItem("g3cfg")||"null")||structuredClone(DEF)};
+
+function log(cls,msg){const el=document.getElementById("log");
+  el.insertAdjacentHTML("beforeend",`<div class="${cls}">${new Date().toLocaleTimeString()} ${msg.replace(/</g,"&lt;")}</div>`);
+  el.scrollTop=el.scrollHeight;}
+
+function deriveKey(serial){
+  const base=parseHex(S.cfg.key);
+  if(base.length!==16) throw new Error("base key must be 16 bytes");
+  const k=Uint8Array.from(base);
+  for(let i=0;i<serial.length&&i<16;i++) k[i]^=serial.charCodeAt(i);
+  S.keyW=expandKey(k);
+}
+
+function buildFrame(src,dst,cmd,arg,data,encrypted){
+  const pt=Uint8Array.from([src,dst,cmd,arg,...data]);
+  const c=crc16(pt),crcB=[c&0xff,c>>8];
+  let body;
+  if(encrypted){
+    if(!S.keyW) throw new Error("no key");
+    const iv=new Uint8Array(16);crypto.getRandomValues(iv);
+    const ct=cbcEnc(S.keyW,iv,pt);
+    body=new Uint8Array(16+ct.length+2);body.set(iv,0);body.set(ct,16);body.set(crcB,16+ct.length);
+  } else {
+    body=new Uint8Array(pt.length+2);body.set(pt,0);body.set(crcB,pt.length);
+  }
+  const f=new Uint8Array(4+body.length);
+  f[0]=0x5a;f[1]=0xa5;f[2]=body.length&0xff;f[3]=body.length>>8;f.set(body,4);
+  return f;
+}
+
+function parseFrame(buf){
+  if(buf.length<6||buf[0]!==0x5a||buf[1]!==0xa5) return null;
+  const body=buf.subarray(4,4+(buf[2]|(buf[3]<<8)));
+  if(body.length<4) return null;
+  let pt;
+  if(S.enc){ if(!S.keyW) return null;
+    pt=cbcDec(S.keyW,body.subarray(0,16),body.subarray(16,body.length-2));
+  } else pt=body.subarray(0,body.length-2);
+  const got=body[body.length-2]|(body[body.length-1]<<8);
+  return {src:pt[0],dst:pt[1],cmd:pt[2],arg:pt[3],data:pt.subarray(4),
+          crcOk:got===crc16(pt.subarray(0,pt.length-2))};
+}
+
+let pending=null;
+const waitReply=(cmd,ms)=>new Promise(res=>{pending={cmd,res};
+  setTimeout(()=>{if(pending&&pending.cmd===cmd){pending=null;res(null);}},ms);});
+
+async function send(cmd,arg,data=[],enc=S.enc){
+  if(!S.txC) throw new Error("not connected");
+  const f=buildFrame(parseHex(S.cfg.src)[0],parseHex(S.cfg.dst)[0],cmd,arg,data,enc);
+  log("tx","→ "+hex(f));
+  const chunk=S.cfg.chunk|0||20;
+  for(let i=0;i<f.length;i+=chunk){
+    const part=f.subarray(i,i+chunk);
+    if(S.txC.writeValueWithoutResponse) await S.txC.writeValueWithoutResponse(part);
+    else await S.txC.writeValue(part);
+    await new Promise(r=>setTimeout(r,12));
+  }
+  return waitReply(cmd,1500);
+}
+
+function onNotify(e){
+  const v=new Uint8Array(e.target.value.buffer);
+  log("rx","← "+hex(v));
+  const fr=parseFrame(v);
+  if(!fr) return;
+  if(pending&&fr.cmd===pending.cmd){const p=pending;pending=null;p.res(fr);}
+}
+
+/* ---- BLE ---- */
+async function connect(){
+  try{
+    S.dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:[S.cfg.svc]});
+    S.dev.addEventListener("gattserverdisconnected",()=>{setStatus(false);log("er","disconnected");});
+    const srv=await S.dev.gatt.connect();
+    const svc=await srv.getPrimaryService(S.cfg.svc);
+    S.txC=await svc.getCharacteristic(S.cfg.tx);
+    S.rxC=await svc.getCharacteristic(S.cfg.rx);
+    await S.rxC.startNotifications();
+    S.rxC.addEventListener("characteristicvaluechanged",onNotify);
+    S.enc=false;S.keyW=null;
+    setStatus(true,S.dev.name||"device");
+    log("ok","connected — deriving key from serial");
+    await readSerial();
+  }catch(err){log("er","connect failed: "+err.message);}
+}
+
+function setStatus(on,name){
+  const el=document.getElementById("status");
+  el.textContent=on?(name||"connected"):"offline";
+  el.classList.toggle("on",!!on);
+  document.getElementById("connect").disabled=!!on;
+  document.getElementById("disconnect").disabled=!on;
+}
+
+async function disconnect(){
+  try{if(S.rxC) await S.rxC.stopNotifications();}catch(_){}
+  try{if(S.dev&&S.dev.gatt.connected) S.dev.gatt.disconnect();}catch(_){}
+  S.txC=S.rxC=null;setStatus(false);
+}
+
+/* ---- actions ---- */
+async function readSerial(){
+  const r=await send(CMD.SERIAL_R,0x01,[0x10,0x3e],false);
+  if(!r||!r.data.length){log("er","no serial reply");return null;}
+  const sn=[...r.data].filter(b=>b>=32&&b<127).map(b=>String.fromCharCode(b)).join("").trim();
+  document.getElementById("snOut").textContent=sn||"(empty)";
+  document.getElementById("snNew").value=sn;
+  if(sn.length>=8){deriveKey(sn);S.enc=true;log("ok","key derived, session encrypted");}
+  return sn;
+}
+async function readReg(a){const r=await send(CMD.REG_R,0x01,[a],S.enc);
+  return (!r||!r.data.length)?null:r.data[r.data.length-1];}
+async function writeReg(a,v){const r=await send(CMD.REG_W,0x01,[a,v],S.enc);return !!r;}
+const map=()=>{try{return JSON.parse(document.getElementById("cMap").value);}catch(_){return S.cfg.map;}};
+
+async function speedRead(){
+  const m=map();
+  for(const [k,id] of [["speed.eco","spEco"],["speed.drive","spDrive"],["speed.sport","spSport"]]){
+    const a=parseHex(m[k]||"")[0];if(a===undefined)continue;
+    const v=await readReg(a);document.getElementById(id).value=v??"";
+  }
+}
+async function speedApply(){
+  const m=map(),backup={};
+  for(const [k,id] of [["speed.eco","spEco"],["speed.drive","spDrive"],["speed.sport","spSport"]]){
+    const a=parseHex(m[k]||"")[0],v=parseInt(document.getElementById(id).value,10);
+    if(a===undefined||isNaN(v))continue;
+    const cur=await readReg(a);if(cur!=null)backup[k]=cur;
+    const ok=await writeReg(a,v);
+    log(ok?"ok":"er",`${k} (${m[k]}) → ${v} ${ok?"ok":"failed"}`);
+  }
+  localStorage.setItem("g3backup",JSON.stringify(backup));
+}
+async function optRead(){
+  const m=map();
+  for(const k of ["cruise","kers","tailLight","zeroStart"]){
+    const a=parseHex(m[k]||"")[0];if(a===undefined)continue;
+    const v=await readReg(a),cb=document.querySelector(`[data-opt="${k}"]`);
+    if(cb&&v!=null)cb.checked=v>0;
+  }
+}
+async function optApply(){
+  const m=map();
+  for(const k of ["cruise","kers","tailLight","zeroStart"]){
+    const a=parseHex(m[k]||"")[0];if(a===undefined)continue;
+    const cb=document.querySelector(`[data-opt="${k}"]`);if(cb)await writeReg(a,cb.checked?1:0);
+  }
+}
+async function sweep(){
+  const from=parseHex(document.getElementById("swFrom").value)[0]??0;
+  const to=parseHex(document.getElementById("swTo").value)[0]??255;
+  const out=[];
+  for(let a=from;a<=to;a++){const v=await readReg(a);
+    out.push(`${a.toString(16).padStart(2,"0")}: ${v==null?"--":v.toString(16).padStart(2,"0")}`);}
+  document.getElementById("infoOut").textContent=out.join("\n");
+  log("ok",`swept ${from.toString(16)}-${to.toString(16)}`);
+}
+
+/* ---- wiring ---- */
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id===b.dataset.tab));
+});
+document.getElementById("connect").onclick=connect;
+document.getElementById("disconnect").onclick=disconnect;
+document.getElementById("readVer").onclick=async()=>{
+  const r=await send(CMD.VER,0x01,[],S.enc);
+  document.getElementById("infoOut").textContent=r?`cmd 0x20\n${hex(r.data)}\n${ascii(r.data)}`:"no reply";};
+document.getElementById("readSn").onclick=readSerial;
+document.getElementById("ping").onclick=()=>send(CMD.VER,0x01,[],false);
+document.getElementById("spRead").onclick=speedRead;
+document.getElementById("spApply").onclick=speedApply;
+document.getElementById("spRestore").onclick=async()=>{
+  const b=JSON.parse(localStorage.getItem("g3backup")||"{}"),m=map();
+  for(const k in b) await writeReg(parseHex(m[k])[0],b[k]);
+  log("ok","restored backup");};
+document.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{
+  const v=b.dataset.preset;spEco.value=spDrive.value=spSport.value=v;});
+document.getElementById("optRead").onclick=optRead;
+document.getElementById("optApply").onclick=optApply;
+document.getElementById("snGen").onclick=()=>{
+  document.getElementById("snNew").value=
+    document.getElementById("snTpl").value.replace(/\+/g,()=>Math.floor(Math.random()*10)).slice(0,14);};
+document.getElementById("snWrite").onclick=async()=>{
+  const sn=document.getElementById("snNew").value.trim();
+  if(sn.length!==14)return alert("serial must be 14 chars");
+  if(!confirm(`Write serial ${sn}?`))return;
+  const r=await send(CMD.SERIAL_W,0x01,[...sn].map(c=>c.charCodeAt(0)),S.enc);
+  log(r?"ok":"er","serial write "+(r?"sent":"no reply"));
+  if(r){deriveKey(sn);document.getElementById("snOut").textContent=sn;}};
+document.getElementById("fSend").onclick=()=>send(parseHex(fCmd.value)[0],parseHex(fArg.value)[0],parseHex(fData.value),fEnc.checked);
+document.getElementById("swRun").onclick=sweep;
+
+/* ---- config ---- */
+function loadCfg(){const c=S.cfg;
+  cSvc.value=c.svc;cTx.value=c.tx;cRx.value=c.rx;cKey.value=c.key;
+  cSrc.value=c.src;cDst.value=c.dst;cChunk.value=c.chunk;
+  cMap.value=JSON.stringify(c.map,null,2);fSrc.value=c.src;fDst.value=c.dst;}
+document.getElementById("cSave").onclick=()=>{
+  try{S.cfg={svc:cSvc.value.trim(),tx:cTx.value.trim(),rx:cRx.value.trim(),
+    key:cKey.value.trim().replace(/0x/gi,""),src:cSrc.value.trim(),dst:cDst.value.trim(),
+    chunk:parseInt(cChunk.value,10)||20,map:JSON.parse(cMap.value)};
+    localStorage.setItem("g3cfg",JSON.stringify(S.cfg));loadCfg();log("ok","config saved");
+  }catch(e){alert("bad config: "+e.message);}};
+document.getElementById("cReset").onclick=()=>{
+  S.cfg=structuredClone(DEF);localStorage.removeItem("g3cfg");loadCfg();log("ok","defaults restored");};
+
+document.getElementById("optList").innerHTML=[["cruise","Cruise control"],["kers","Energy recovery (KERS)"],["tailLight","Tail light"],["zeroStart","Zero start"]]
+  .map(([k,l])=>`<div class="chk"><span>${l}</span><input type="checkbox" data-opt="${k}"></div>`).join("");
+loadCfg();log("ok","ready");
+</script>
+</body>
+</html>
