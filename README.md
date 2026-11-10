@@ -1,20 +1,38 @@
-# G3-TunR
+# G3 TunR
 
-Browser tool for the Segway/Ninebot MAX G3 over Web Bluetooth. One file, no build, no deps, no backend.
+Browser tuner for the Ninebot Max G3. Region unlock and up to 50 km/h over Bluetooth — no app, no account, nothing installed.
 
-## What is solid vs. not
-Solid: AES-128-CBC framing with CRC16-CCITT, plaintext serial read → key derivation → encrypted session, chunked writes, notify parsing, backup/restore, config persistence.
-Not solid: the G3 register IDs. Defaults are lineage guesses (`0x60/0x61/0x62` speed, `0x7C` cruise, `0x7B` KERS, `0x7D` tail light, `0x7E` zero start). Fix them in Config — the map is JSON, no code edit needed.
+Targets **MCU 1.6.0** and **VCU 1.6.3**; supports VCU **1.5.8 – 1.6.x**.
 
-## Finding real registers
-1. Console → Read range `0x00`–`0xFF` → copy the output.
-2. Change exactly one setting in the official app.
-3. Sweep again and diff. The changed byte is the register.
-4. Add it to the map.
+## Deploy (GitHub Pages)
 
-## Limits
-- No firmware flashing (ST-Link territory).
-- Serial write = region change; works on stock 1.6.3, patched on 1.6.4+.
-- Not yet validated on live hardware.
+1. New public repo → upload `index.html` and this README.
+2. Settings → Pages → Source: *Deploy from a branch* → `main` / `root` → Save.
+3. Open `https://<user>.github.io/<repo>/` on the phone in Chrome. HTTPS is required for Bluetooth.
 
-MIT
+## Use
+
+1. Power on, close the Segway app completely.
+2. Connect → pick the scooter → press its power button once.
+3. **Backup** the serial number. Then pick region `C` (US), set 50, Apply.
+4. Rebind the scooter in the Segway app afterwards — the SN is what it's bound to.
+
+## What it writes
+
+| Function | Where |
+| --- | --- |
+| Serial number / region | VCU cmd `0x18`, reg `0x10` |
+| Speed caps | regs `0x45`, `0x46` |
+| Cruise, TCS, units | reg `0x1D` bits 12/0/3 |
+| KERS, acceleration, start speed, alarm | regs `0x70`, `0x6E`, `0x42`, `0x74` |
+| Underglow, breathing tail, auto headlight | reg `0x1F` bits 2/1/0 |
+
+Every write is read back. Writes are blocked unless the scooter is standing still.
+
+## Notes
+
+- `C` is the known US/unlocked region code. 50 km/h is above the US cap of ~40 — some MCU builds hold lower, that's the hardware, not the tool.
+- iOS: Safari has no Web Bluetooth. Use the Bluefy browser.
+- If a write fails, restore the backed-up SN and reboot. The ST-Link route still exists as a fallback.
+
+MIT.
