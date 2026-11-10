@@ -8,26 +8,28 @@
 :root{--bg:#0d0f12;--panel:#151a20;--line:#242c36;--fg:#dfe6ee;--dim:#8b98a7;--acc:#39d3a0;--warn:#e8b24a;--bad:#e8685f}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 -apple-system,Segoe UI,Roboto,sans-serif}
-header{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+header{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5;flex-wrap:wrap}
 h1{font-size:14px;margin:0;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);font-weight:600}
-button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:7px;padding:7px 11px;font:inherit;cursor:pointer}
+button{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:7px 11px;font:inherit;cursor:pointer}
 button:disabled{opacity:.4;cursor:not-allowed}
 button.p{background:var(--acc);color:#04140e;border-color:var(--acc);font-weight:600}
-#status{margin-left:auto;font:12px/1 ui-monospace,Menlo,monospace;padding:5px 9px;border-radius:99px;border:1px solid var(--line);color:var(--dim)}
-#status.on{color:var(--acc);border-color:#1e5c47}
+button.s{font-size:12px;padding:5px 9px}
+#status{margin-left:auto;font:12px/1 ui-monospace,Menlo,monospace;padding:5px 9px;border:1px solid var(--line);color:var(--dim)}
+#status.on{color:var(--acc);border-color:var(--acc)}
 nav{display:flex;overflow:auto;border-bottom:1px solid var(--line);background:var(--panel)}
-nav button{border:0;border-radius:0;background:none;color:var(--dim);padding:11px 13px;font-size:12.5px;letter-spacing:.04em}
-nav button[aria-selected=true]{color:var(--fg);box-shadow:inset 0 -2px 0 var(--acc)}
-main{padding:12px;max-width:760px;margin:0 auto}
+nav button{border:0;border-radius:0;background:none;color:var(--dim);padding:11px 13px;font-size:12.5px;letter-spacing:.04em;border-bottom:2px solid transparent}
+nav button[aria-selected=true]{color:var(--fg);border-bottom-color:var(--acc)}
+main{padding:12px;max-width:780px;margin:0 auto}
 section{display:none}
 section.on{display:block}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin:0 0 12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;margin:0 0 12px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 label{font-size:12px;color:var(--dim);display:block;margin:0 0 4px}
-input{background:#0b0e12;border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:8px;font:inherit;width:100%}
+input,textarea{background:#0b0e12;border:1px solid var(--line);color:var(--fg);border-radius:5px;padding:8px;font:inherit;width:100%}
 input[type=checkbox]{width:auto}
 .g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-pre{background:#080a0d;border:1px solid var(--line);border-radius:8px;padding:9px;font:12px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-all;max-height:240px;overflow:auto;margin:8px 0 0;color:#9fb4c7}
+pre{background:#080a0d;border:1px solid var(--line);border-radius:6px;padding:9px;font:12px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-all;max-height:220px;overflow:auto;margin:8px 0 0;color:#9fb4c7}
+.tip{font-size:12px;color:var(--dim);border-left:2px solid var(--acc);padding:2px 0 2px 9px;margin:0 0 12px}
 .note{font-size:12px;color:var(--dim);margin:6px 0 0}
 .warn{color:var(--warn)}
 .chk{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
@@ -35,12 +37,16 @@ pre{background:#080a0d;border:1px solid var(--line);border-radius:8px;padding:9p
 #log{font:11.5px/1.5 ui-monospace,Menlo,monospace;background:#080a0d;border-top:1px solid var(--line);padding:8px;max-height:150px;overflow:auto;white-space:pre-wrap;word-break:break-all;color:#7f8fa0}
 .tx{color:#6fb2ff}.rx{color:#57d69b}.er{color:#f08a80}.ok{color:var(--acc)}
 hr{border:0;border-top:1px solid var(--line);margin:10px 0}
+#wake{display:none;border:1px solid var(--warn);border-radius:8px;padding:11px;margin:0 0 12px;background:#1b1710}
+#wake.on{display:block}
+#wake b{color:var(--warn)}
 </style>
 </head>
 <body>
 <header>
   <h1>G3&nbsp;BLE&nbsp;Tuner</h1>
   <button id="connect" class="p">Connect</button>
+  <button id="wakeBtn" disabled>Wake&nbsp;&amp;&nbsp;probe</button>
   <button id="disconnect" disabled>Disconnect</button>
   <span id="status">offline</span>
 </header>
@@ -55,50 +61,76 @@ hr{border:0;border-top:1px solid var(--line);margin:10px 0}
 </nav>
 
 <main>
+<div id="wake"><b>No reply yet.</b> Tap the power button on the scooter once, then press <b>Wake &amp; probe</b>. The BLE link stays asleep until the button wakes it, and the app then tries every known target address.</div>
+
 <section id="info" class="on">
+  <p class="tip" id="tip-info"></p>
   <div class="card">
     <div class="row">
       <button id="readVer">Read versions</button>
       <button id="readSn">Read serial</button>
       <button id="ping">Ping</button>
+      <button id="probe">Probe addresses</button>
     </div>
-    <p class="note">If nothing answers, change the target address in Config (try 0x20, 0x21, 0x35, 0x3D) and watch the log.</p>
+    <div class="row" style="margin-top:8px">
+      <label style="margin:0"><input type="checkbox" id="listen"> Listen only (log everything, send nothing)</label>
+    </div>
     <pre id="infoOut">-</pre>
+  </div>
+  <div class="card">
+    <label>No reply — work down this list</label>
+    <p class="note">1. Press the power button on the scooter, then run Wake &amp; probe.<br>
+    2. Close the Segway app completely; it holds the only BLE slot.<br>
+    3. Config → write mode → try "with response".<br>
+    4. Probe: if a different address answers, use it as target.<br>
+    5. Move closer, keep the scooter awake and off the charger.</p>
   </div>
 </section>
 
 <section id="speed">
+  <p class="tip" id="tip-speed"></p>
   <div class="card">
-    <p class="note warn">Register IDs are <b>unverified on G3</b>. Confirm them with the sweep/diff tool before trusting writes.</p>
-    <div class="g" style="margin-top:10px">
-      <div><label>Eco km/h</label><input id="spEco" type="number" min="1" max="60" step="1"></div>
-      <div><label>Drive km/h</label><input id="spDrive" type="number" min="1" max="60" step="1"></div>
-      <div><label>Sport km/h</label><input id="spSport" type="number" min="1" max="60" step="1"></div>
+    <div class="g">
+      <div><label>Eco km/h</label><input id="spEco" type="number" min="1" max="60"></div>
+      <div><label>Drive km/h</label><input id="spDrive" type="number" min="1" max="60"></div>
+      <div><label>Sport km/h</label><input id="spSport" type="number" min="1" max="60"></div>
     </div>
     <div class="row" style="margin-top:10px">
-      <button data-preset="20">20</button><button data-preset="22">22</button>
-      <button data-preset="25">25</button><button data-preset="30">30</button>
-      <button data-preset="35">35</button><button data-preset="40">40</button>
-      <button data-preset="45">45</button>
+      <button class="s" data-preset="20">20</button><button class="s" data-preset="22">22</button>
+      <button class="s" data-preset="25">25</button><button class="s" data-preset="30">30</button>
+      <button class="s" data-preset="35">35</button><button class="s" data-preset="40">40</button>
+      <button class="s" data-preset="45">45</button>
     </div>
     <hr>
     <div class="row">
       <button id="spRead">Read</button>
-      <button id="spApply" class="p">Apply</button>
+      <button id="spApply" class="p">Apply + verify</button>
       <button id="spRestore">Restore backup</button>
     </div>
-    <p class="note">Apply stores the raw previous values in local storage first, so a wrong map is recoverable.</p>
+    <p class="note">Preset fills all three modes. Apply re-reads each register afterwards and reports mismatches, and stores the old values first.</p>
+  </div>
+  <div class="card">
+    <label>Watch a register live</label>
+    <div class="row">
+      <input id="wReg" value="0x60" style="width:90px">
+      <button id="wStart" class="s">Start</button>
+      <button id="wStop" class="s">Stop</button>
+      <span id="wVal" style="font:13px ui-monospace,Menlo,monospace">-</span>
+    </div>
   </div>
 </section>
 
 <section id="opts">
+  <p class="tip" id="tip-opts"></p>
   <div class="card" id="optList"></div>
   <div class="row"><button id="optRead">Read</button><button id="optApply" class="p">Apply</button></div>
 </section>
 
 <section id="serial">
+  <p class="tip" id="tip-serial"></p>
   <div class="card">
     <label>Current serial</label><pre id="snOut">-</pre>
+    <div class="row" style="margin-top:8px"><button id="snOrig" class="s">Restore stored original</button></div>
     <hr>
     <label>Template (14 chars, + = random digit)</label>
     <input id="snTpl" value="1CGCC++++C++++" spellcheck="false">
@@ -107,11 +139,12 @@ hr{border:0;border-top:1px solid var(--line);margin:10px 0}
       <button id="snWrite" class="p">Write serial</button>
     </div>
     <input id="snNew" placeholder="generated serial" spellcheck="false" style="margin-top:10px">
-    <p class="note warn">Changing the serial changes region. The key derives from the serial, so reconnect and re-read after writing. Rebind in the Segway app afterwards.</p>
+    <p class="note warn">The AES key derives from the serial. After a write the app re-derives immediately — but keep a copy of the old one.</p>
   </div>
 </section>
 
 <section id="console">
+  <p class="tip" id="tip-console"></p>
   <div class="card">
     <div class="g">
       <div><label>src</label><input id="fSrc" value="0x3D" spellcheck="false"></div>
@@ -124,34 +157,53 @@ hr{border:0;border-top:1px solid var(--line);margin:10px 0}
     </div>
     <div class="chk"><span>Encrypt frame</span><input id="fEnc" type="checkbox"></div>
     <div class="row"><button id="fSend" class="p">Send frame</button></div>
-    <hr>
+    <pre id="decOut">decoded frames appear here</pre>
+  </div>
+  <div class="card">
+    <label>Snapshot + diff (register discovery)</label>
+    <div class="row">
+      <button id="snapA" class="s">Snapshot A</button>
+      <button id="snapB" class="s">Snapshot B</button>
+      <button id="diffBtn" class="s">Diff A→B</button>
+    </div>
+    <p class="note">Snapshot A, change one setting in the Segway app, Snapshot B, Diff. Only the registers that moved are shown.</p>
+    <pre id="diffOut">-</pre>
+  </div>
+  <div class="card">
     <div class="row">
       <label style="margin:0">Sweep</label>
       <input id="swFrom" value="0x00" style="width:80px" spellcheck="false">
       <input id="swTo" value="0xFF" style="width:80px" spellcheck="false">
-      <button id="swRun">Read range</button>
+      <button id="swRun" class="s">Read range</button>
     </div>
-    <p class="note">Reads one byte per register. Change one setting in the official app, sweep again, compare — that is how the real IDs get found.</p>
   </div>
 </section>
 
 <section id="config">
+  <p class="tip" id="tip-config"></p>
   <div class="card">
     <div class="g">
       <div style="grid-column:span 3"><label>Service UUID</label><input id="cSvc" spellcheck="false"></div>
       <div style="grid-column:span 3"><label>Write characteristic</label><input id="cTx" spellcheck="false"></div>
       <div style="grid-column:span 3"><label>Notify characteristic</label><input id="cRx" spellcheck="false"></div>
-      <div style="grid-column:span 3"><label>Base AES key (hex, XORed with serial)</label><input id="cKey" spellcheck="false"></div>
+      <div style="grid-column:span 3"><label>Base AES key (hex)</label><input id="cKey" spellcheck="false"></div>
       <div><label>src</label><input id="cSrc" spellcheck="false"></div>
       <div><label>dst</label><input id="cDst" spellcheck="false"></div>
       <div><label>chunk</label><input id="cChunk" type="number" min="1" max="64"></div>
+      <div style="grid-column:span 3"><label>Write mode</label>
+        <select id="cWrite" style="background:#0b0e12;border:1px solid var(--line);color:var(--fg);border-radius:5px;padding:8px;width:100%">
+          <option value="resp">with response</option>
+          <option value="noresp">without response</option>
+        </select></div>
+      <div><label>reply timeout ms</label><input id="cTimeout" type="number" min="200" max="5000" step="100"></div>
     </div>
     <hr>
     <label>Register map (JSON: name → hex)</label>
-    <textarea id="cMap" rows="9" spellcheck="false" style="background:#0b0e12;border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:8px;font:12px ui-monospace,Menlo,monospace;width:100%"></textarea>
+    <textarea id="cMap" rows="9" spellcheck="false" style="font:12px ui-monospace,Menlo,monospace"></textarea>
     <div class="row" style="margin-top:10px">
       <button id="cSave" class="p">Save</button>
       <button id="cReset">Reset defaults</button>
+      <button id="expBtn">Export session</button>
     </div>
   </div>
 </section>
@@ -163,17 +215,44 @@ hr{border:0;border-top:1px solid var(--line);margin:10px 0}
 "use strict";
 
 const DEF = {
-  svc: "6e400001-b5a3-f393-e0a9-e50e24dcca9e",
-  tx:  "6e400002-b5a3-f393-e0a9-e50e24dcca9e",
-  rx:  "6e400003-b5a3-f393-e0a9-e50e24dcca9e",
-  key: "97CFB8026448724A24D3B8A3A7723706",
-  src: "0x3D", dst: "0x35", chunk: 20,
-  map: { "speed.eco":"0x60", "speed.drive":"0x61", "speed.sport":"0x62",
-         "cruise":"0x7C", "kers":"0x7B", "tailLight":"0x7D", "zeroStart":"0x7E" }
+  svc:"6e400001-b5a3-f393-e0a9-e50e24dcca9e",
+  tx:"6e400002-b5a3-f393-e0a9-e50e24dcca9e",
+  rx:"6e400003-b5a3-f393-e0a9-e50e24dcca9e",
+  key:"97CFB8026448724A24D3B8A3A7723706",
+  src:"0x3D", dst:"0x35", chunk:20, write:"resp", timeout:1500,
+  map:{"speed.eco":"0x60","speed.drive":"0x61","speed.sport":"0x62",
+       "cruise":"0x7C","kers":"0x7B","tailLight":"0x7D","zeroStart":"0x7E"}
 };
-const CMD = { VER:0x20, SERIAL_R:0x21, REG_R:0x22, REG_W:0x23, SERIAL_W:0x26 };
+const CMD = {VER:0x20,SERIAL_R:0x21,REG_R:0x22,REG_W:0x23,SERIAL_W:0x26};
+const CANDIDATES = ["0x20","0x21","0x22","0x25","0x35","0x3D"];
 
-/* ---- AES-128, zero padding ---- */
+const TIPS = {
+  info:["Press the power button on the scooter before the first frame — the BLE link is asleep until then.",
+        "Probe is harmless: it only sends read-only version requests.",
+        "If a different address answers the probe, it becomes the new target automatically.",
+        "Listen only is the fastest way to see whether the scooter talks at all."],
+  speed:["Change one mode, test-ride, then the next. All three at once makes faults hard to attribute.",
+         "Apply verifies by reading back — a mismatch means the register map is wrong for this firmware.",
+         "Eco and Drive caps are independent of Sport; use them for range rather than a global cap.",
+         "The German 20 km/h limit lives app-side, so any value here is region-independent."],
+  opts:["Read first — Apply writes every toggle, including ones you did not touch.",
+        "KERS off noticeably lengthens coasting but returns less energy to the pack.",
+        "Zero start strains controller and pack; it is the first thing to disable if the motor gets hot."],
+  serial:["Region is encoded in the serial, not a separate field.",
+          "Store the original before writing — the key derives from it.",
+          "Rebind in the Segway app after a write; expect a 'bound to another account' prompt.",
+          "Serial write still works on stock 1.6.3. On 1.6.4+ it is patched."],
+  console:["Decoded frames show CRC validity — an invalid CRC means a broken key or wrong offset.",
+           "Snapshot A/B diffing is how you find real registers without guessing.",
+           "Register 0x00 and 0xFF are often invalid; empty replies there are normal.",
+           "Keep sweeps narrow; each read is a full request/response round trip."],
+  config:["Write mode 'with response' surfaces errors the scooter would otherwise swallow.",
+          "The register map is JSON, so corrections never need a code change.",
+          "Export session before big changes: it bundles log, config and snapshots.",
+          "Chunk 20 is safe. Raise it only if your phone negotiates a larger MTU."]
+};
+
+/* AES-128, zero padding */
 const SBOX=(()=>{const s="637c777bf26b6fc53001672bfed7ab76ca82c97dfa5947f0add4a2af9ca472c0b7fd9326363ff7cc34a5e5f171d8311504c723c31896059a071280e2eb27b27509832c1a1b6e5aa0523bd6b329e32f8453d100ed20fcb15b6acbbe394a4c58cfd0efaafb434d338545f9027f503c9fa851a3408f929d38f5bcb6da2110fff3d2cd0c13ec5f974417c4a77e3d645d197360814fdc222a908846eeb814de5e0bdbe0323a0a4906245cc2d3ac629195e479e7c8376d8dd54ea96c56f4ea657aae08ba78252e1ca6b4c6e8dd741f4bbd8b8a703eb5664803f60e613557b986c11d9ee1f8981169d98e949b1e87e9ce5528df8ca1890dbfe6426841992d0fb054bb16";const a=new Uint8Array(256);for(let i=0;i<256;i++)a[i]=parseInt(s.substr(i*2,2),16);return a;})();
 const INV=(()=>{const a=new Uint8Array(256);for(let i=0;i<256;i++)a[SBOX[i]]=i;return a;})();
 const xt=a=>((a<<1)^((a&0x80)?0x1b:0))&0xff;
@@ -185,7 +264,7 @@ function expandKey(k){const w=new Uint8Array(176);w.set(k);let rc=1;
 const ark=(s,w,r)=>{for(let i=0;i<16;i++)s[i]^=w[r*16+i];};
 const sub=s=>{for(let i=0;i<16;i++)s[i]=SBOX[s[i]];};
 const isub=s=>{for(let i=0;i<16;i++)s[i]=INV[s[i]];};
-function sr(s){let t;s=s;t=s[1];s[1]=s[5];s[5]=s[9];s[9]=s[13];s[13]=t;
+function sr(s){let t;t=s[1];s[1]=s[5];s[5]=s[9];s[9]=s[13];s[13]=t;
   t=s[2];s[2]=s[10];s[10]=t;t=s[6];s[6]=s[14];s[14]=t;
   t=s[15];s[15]=s[11];s[11]=s[7];s[7]=s[3];s[3]=t;}
 function isr(s){let t;t=s[13];s[13]=s[9];s[9]=s[5];s[5]=s[1];s[1]=t;
@@ -209,18 +288,23 @@ function cbcDec(w,iv,ct){const out=new Uint8Array(ct.length);let prev=iv;
   for(let o=0;o<ct.length;o+=16){const c=ct.subarray(o,o+16),d=decBlock(w,c);
     for(let i=0;i<16;i++)out[o+i]=d[i]^prev[i];prev=c;}return out;}
 
-/* ---- protocol ---- */
+/* protocol */
 function crc16(b){let c=0xffff;for(const x of b){c^=x<<8;for(let i=0;i<8;i++)c=(c&0x8000)?((c<<1)^0x1021)&0xffff:(c<<1)&0xffff;}return c;}
 const hex=b=>[...b].map(x=>x.toString(16).padStart(2,"0")).join(" ");
 const ascii=b=>[...b].map(x=>x>=32&&x<127?String.fromCharCode(x):".").join("");
-const parseHex=s=>s.replace(/0x/gi,"").split(/[\s,]+/).filter(Boolean).map(x=>parseInt(x,16)&0xff);
+const parseHex=s=>String(s).replace(/0x/gi,"").split(/[\s,]+/).filter(Boolean).map(x=>parseInt(x,16)&0xff);
 
-const S={dev:null,txC:null,rxC:null,enc:false,keyW:null,
-  cfg:JSON.parse(localStorage.getItem("g3cfg")||"null")||structuredClone(DEF)};
+const S={dev:null,txC:null,rxC:null,enc:false,keyW:null,listen:false,
+  cfg:JSON.parse(localStorage.getItem("g3cfg")||"null")||structuredClone(DEF),
+  snaps:{A:null,B:null}, watch:null, logBuf:[]};
 
-function log(cls,msg){const el=document.getElementById("log");
-  el.insertAdjacentHTML("beforeend",`<div class="${cls}">${new Date().toLocaleTimeString()} ${msg.replace(/</g,"&lt;")}</div>`);
-  el.scrollTop=el.scrollHeight;}
+function log(cls,msg){
+  const el=document.getElementById("log");
+  const line=`${new Date().toLocaleTimeString()} ${msg}`;
+  S.logBuf.push(`[${cls}] ${line}`);
+  el.insertAdjacentHTML("beforeend",`<div class="${cls}">${line.replace(/</g,"&lt;")}</div>`);
+  el.scrollTop=el.scrollHeight;
+}
 
 function deriveKey(serial){
   const base=parseHex(S.cfg.key);
@@ -235,7 +319,7 @@ function buildFrame(src,dst,cmd,arg,data,encrypted){
   const c=crc16(pt),crcB=[c&0xff,c>>8];
   let body;
   if(encrypted){
-    if(!S.keyW) throw new Error("no key");
+    if(!S.keyW) throw new Error("no key derived");
     const iv=new Uint8Array(16);crypto.getRandomValues(iv);
     const ct=cbcEnc(S.keyW,iv,pt);
     body=new Uint8Array(16+ct.length+2);body.set(iv,0);body.set(ct,16);body.set(crcB,16+ct.length);
@@ -261,21 +345,24 @@ function parseFrame(buf){
 }
 
 let pending=null;
-const waitReply=(cmd,ms)=>new Promise(res=>{pending={cmd,res};
-  setTimeout(()=>{if(pending&&pending.cmd===cmd){pending=null;res(null);}},ms);});
+const waitReply=(cmd,ms)=>new Promise(res=>{
+  pending={cmd,res};
+  setTimeout(()=>{if(pending&&pending.cmd===cmd){pending=null;res(null);}},ms);
+});
 
 async function send(cmd,arg,data=[],enc=S.enc){
   if(!S.txC) throw new Error("not connected");
+  if(S.listen) return null;
   const f=buildFrame(parseHex(S.cfg.src)[0],parseHex(S.cfg.dst)[0],cmd,arg,data,enc);
   log("tx","→ "+hex(f));
-  const chunk=S.cfg.chunk|0||20;
+  const chunk=Math.max(1,S.cfg.chunk|0||20);
   for(let i=0;i<f.length;i+=chunk){
     const part=f.subarray(i,i+chunk);
-    if(S.txC.writeValueWithoutResponse) await S.txC.writeValueWithoutResponse(part);
+    if(S.cfg.write==="noresp"&&S.txC.writeValueWithoutResponse) await S.txC.writeValueWithoutResponse(part);
     else await S.txC.writeValue(part);
     await new Promise(r=>setTimeout(r,12));
   }
-  return waitReply(cmd,1500);
+  return waitReply(cmd, S.cfg.timeout|0||1500);
 }
 
 function onNotify(e){
@@ -283,10 +370,12 @@ function onNotify(e){
   log("rx","← "+hex(v));
   const fr=parseFrame(v);
   if(!fr) return;
-  if(pending&&fr.cmd===pending.cmd){const p=pending;pending=null;p.res(fr);}
+  document.getElementById("decOut").textContent=
+    `src ${fr.src.toString(16)} dst ${fr.dst.toString(16)} cmd ${fr.cmd.toString(16)} arg ${fr.arg.toString(16)} crc ${fr.crcOk?"ok":"BAD"}\ndata ${hex(fr.data)}\n${ascii(fr.data)}`;
+  if(pending&&(pending.cmd===null||pending.cmd===fr.cmd)){const p=pending;pending=null;p.res(fr);}
 }
 
-/* ---- BLE ---- */
+/* BLE */
 async function connect(){
   try{
     S.dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:[S.cfg.svc]});
@@ -299,8 +388,9 @@ async function connect(){
     S.rxC.addEventListener("characteristicvaluechanged",onNotify);
     S.enc=false;S.keyW=null;
     setStatus(true,S.dev.name||"device");
-    log("ok","connected — deriving key from serial");
-    await readSerial();
+    document.getElementById("wake").classList.add("on");
+    log("ok","connected — tap the power button on the scooter");
+    setTimeout(()=>{ if(S.txC) wakeProbe(); },2500);
   }catch(err){log("er","connect failed: "+err.message);}
 }
 
@@ -310,6 +400,7 @@ function setStatus(on,name){
   el.classList.toggle("on",!!on);
   document.getElementById("connect").disabled=!!on;
   document.getElementById("disconnect").disabled=!on;
+  document.getElementById("wakeBtn").disabled=!on;
 }
 
 async function disconnect(){
@@ -318,16 +409,53 @@ async function disconnect(){
   S.txC=S.rxC=null;setStatus(false);
 }
 
-/* ---- actions ---- */
+/* handshake + probe */
+async function wakeProbe(){
+  if(!S.txC) return;
+  log("ok","probing target addresses — press the power button now");
+  const orig=S.cfg.dst;
+  for(const addr of CANDIDATES){
+    S.cfg.dst=addr;
+    const r=await probeOnce();
+    if(r){ S.cfg.dst=addr; log("ok","reply from "+addr+" — using it as target");
+      document.getElementById("cDst").value=addr;
+      document.getElementById("wake").classList.remove("on");
+      await readSerial(); return; }
+  }
+  S.cfg.dst=orig;
+  log("er","no address answered — check the list in Info");
+}
+
+async function probeOnce(){
+  try{
+    const f=buildFrame(parseHex(S.cfg.src)[0],parseHex(S.cfg.dst)[0],CMD.VER,0x01,[],false);
+    for(let i=0;i<f.length;i+=20){
+      const part=f.subarray(i,i+20);
+      if(S.cfg.write==="noresp"&&S.txC.writeValueWithoutResponse) await S.txC.writeValueWithoutResponse(part);
+      else await S.txC.writeValue(part);
+      await new Promise(r=>setTimeout(r,10));
+    }
+    log("tx","→ probe "+S.cfg.dst);
+    return await waitReply(null, 700);
+  }catch(_){ return null; }
+}
+
 async function readSerial(){
   const r=await send(CMD.SERIAL_R,0x01,[0x10,0x3e],false);
   if(!r||!r.data.length){log("er","no serial reply");return null;}
   const sn=[...r.data].filter(b=>b>=32&&b<127).map(b=>String.fromCharCode(b)).join("").trim();
   document.getElementById("snOut").textContent=sn||"(empty)";
   document.getElementById("snNew").value=sn;
-  if(sn.length>=8){deriveKey(sn);S.enc=true;log("ok","key derived, session encrypted");}
+  if(sn.length>=8){
+    if(!localStorage.getItem("g3orig")) localStorage.setItem("g3orig",sn);
+    deriveKey(sn);S.enc=true;
+    document.getElementById("wake").classList.remove("on");
+    log("ok","key derived — session encrypted");
+  }
   return sn;
 }
+
+/* registers */
 async function readReg(a){const r=await send(CMD.REG_R,0x01,[a],S.enc);
   return (!r||!r.data.length)?null:r.data[r.data.length-1];}
 async function writeReg(a,v){const r=await send(CMD.REG_W,0x01,[a,v],S.enc);return !!r;}
@@ -340,6 +468,7 @@ async function speedRead(){
     const v=await readReg(a);document.getElementById(id).value=v??"";
   }
 }
+
 async function speedApply(){
   const m=map(),backup={};
   for(const [k,id] of [["speed.eco","spEco"],["speed.drive","spDrive"],["speed.sport","spSport"]]){
@@ -347,10 +476,13 @@ async function speedApply(){
     if(a===undefined||isNaN(v))continue;
     const cur=await readReg(a);if(cur!=null)backup[k]=cur;
     const ok=await writeReg(a,v);
-    log(ok?"ok":"er",`${k} (${m[k]}) → ${v} ${ok?"ok":"failed"}`);
+    const chk=await readReg(a);
+    const good=chk===v;
+    log(good?"ok":"er",`${k} (${m[k]}) → ${v} ${good?"verified":"MISMATCH read "+chk}`);
   }
   localStorage.setItem("g3backup",JSON.stringify(backup));
 }
+
 async function optRead(){
   const m=map();
   for(const k of ["cruise","kers","tailLight","zeroStart"]){
@@ -359,35 +491,88 @@ async function optRead(){
     if(cb&&v!=null)cb.checked=v>0;
   }
 }
+
 async function optApply(){
   const m=map();
   for(const k of ["cruise","kers","tailLight","zeroStart"]){
     const a=parseHex(m[k]||"")[0];if(a===undefined)continue;
-    const cb=document.querySelector(`[data-opt="${k}"]`);if(cb)await writeReg(a,cb.checked?1:0);
+    const cb=document.querySelector(`[data-opt="${k}"]`);
+    if(cb){const ok=await writeReg(a,cb.checked?1:0);log(ok?"ok":"er",`${k} → ${cb.checked?1:0} ${ok?"sent":"failed"}`);}
   }
 }
+
+async function snapshot(slot){
+  const out={};
+  for(let a=0;a<=255;a++){const v=await readReg(a);if(v!=null)out[a.toString(16).padStart(2,"0")]=v;}
+  S.snaps[slot]=out;log("ok","snapshot "+slot+" ("+Object.keys(out).length+" regs)");
+}
+
+function showDiff(){
+  const A=S.snaps.A,B=S.snaps.B;
+  if(!A||!B)return document.getElementById("diffOut").textContent="need both snapshots";
+  const keys=new Set([...Object.keys(A),...Object.keys(B)]),lines=[];
+  for(const k of [...keys].sort()){
+    if(A[k]!==B[k]) lines.push(`0x${k}: ${A[k]??"--"} → ${B[k]??"--"}`);
+  }
+  document.getElementById("diffOut").textContent=lines.length?lines.join("\n"):"no differences";
+  log("ok","diff: "+lines.length+" changed");
+}
+
 async function sweep(){
   const from=parseHex(document.getElementById("swFrom").value)[0]??0;
   const to=parseHex(document.getElementById("swTo").value)[0]??255;
   const out=[];
   for(let a=from;a<=to;a++){const v=await readReg(a);
     out.push(`${a.toString(16).padStart(2,"0")}: ${v==null?"--":v.toString(16).padStart(2,"0")}`);}
-  document.getElementById("infoOut").textContent=out.join("\n");
+  document.getElementById("diffOut").textContent=out.join("\n");
   log("ok",`swept ${from.toString(16)}-${to.toString(16)}`);
 }
 
-/* ---- wiring ---- */
+/* watch */
+function startWatch(){
+  stopWatch();
+  const a=parseHex(document.getElementById("wReg").value)[0];
+  if(a===undefined)return;
+  S.watch=setInterval(async()=>{
+    const v=await readReg(a);
+    document.getElementById("wVal").textContent=v==null?"--":`0x${v.toString(16)} (${v})`;
+  },1000);
+}
+function stopWatch(){if(S.watch){clearInterval(S.watch);S.watch=null;}}
+
+/* export */
+function exportSession(){
+  const blob=new Blob([JSON.stringify({
+    date:new Date().toISOString(), cfg:S.cfg, serial:document.getElementById("snOut").textContent,
+    snaps:S.snaps, log:S.logBuf },null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="g3-session-"+Date.now()+".json";a.click();
+}
+
+/* wiring */
+const tipIdx={};
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected",x===b));
   document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id===b.dataset.tab));
+  const t=b.dataset.tab, arr=TIPS[t];
+  tipIdx[t]=(tipIdx[t]??-1)+1;
+  const el=document.getElementById("tip-"+t);
+  if(el) el.textContent=arr[tipIdx[t]%arr.length];
+});
+document.querySelectorAll("nav button").forEach(b=>{
+  const t=b.dataset.tab;if(TIPS[t])document.getElementById("tip-"+t).textContent=TIPS[t][0];
 });
 document.getElementById("connect").onclick=connect;
 document.getElementById("disconnect").onclick=disconnect;
+document.getElementById("wakeBtn").onclick=wakeProbe;
 document.getElementById("readVer").onclick=async()=>{
   const r=await send(CMD.VER,0x01,[],S.enc);
   document.getElementById("infoOut").textContent=r?`cmd 0x20\n${hex(r.data)}\n${ascii(r.data)}`:"no reply";};
 document.getElementById("readSn").onclick=readSerial;
 document.getElementById("ping").onclick=()=>send(CMD.VER,0x01,[],false);
+document.getElementById("probe").onclick=wakeProbe;
+document.getElementById("listen").onchange=e=>{S.listen=e.target.checked;log("ok","listen "+(S.listen?"on":"off"));};
 document.getElementById("spRead").onclick=speedRead;
 document.getElementById("spApply").onclick=speedApply;
 document.getElementById("spRestore").onclick=async()=>{
@@ -396,11 +581,17 @@ document.getElementById("spRestore").onclick=async()=>{
   log("ok","restored backup");};
 document.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{
   const v=b.dataset.preset;spEco.value=spDrive.value=spSport.value=v;});
+document.getElementById("wStart").onclick=startWatch;
+document.getElementById("wStop").onclick=stopWatch;
 document.getElementById("optRead").onclick=optRead;
 document.getElementById("optApply").onclick=optApply;
 document.getElementById("snGen").onclick=()=>{
   document.getElementById("snNew").value=
     document.getElementById("snTpl").value.replace(/\+/g,()=>Math.floor(Math.random()*10)).slice(0,14);};
+document.getElementById("snOrig").onclick=()=>{
+  const o=localStorage.getItem("g3orig");
+  if(!o)return alert("no stored original");
+  document.getElementById("snNew").value=o;};
 document.getElementById("snWrite").onclick=async()=>{
   const sn=document.getElementById("snNew").value.trim();
   if(sn.length!==14)return alert("serial must be 14 chars");
@@ -409,17 +600,23 @@ document.getElementById("snWrite").onclick=async()=>{
   log(r?"ok":"er","serial write "+(r?"sent":"no reply"));
   if(r){deriveKey(sn);document.getElementById("snOut").textContent=sn;}};
 document.getElementById("fSend").onclick=()=>send(parseHex(fCmd.value)[0],parseHex(fArg.value)[0],parseHex(fData.value),fEnc.checked);
+document.getElementById("snapA").onclick=()=>snapshot("A");
+document.getElementById("snapB").onclick=()=>snapshot("B");
+document.getElementById("diffBtn").onclick=showDiff;
 document.getElementById("swRun").onclick=sweep;
+document.getElementById("expBtn").onclick=exportSession;
 
-/* ---- config ---- */
+/* config */
 function loadCfg(){const c=S.cfg;
   cSvc.value=c.svc;cTx.value=c.tx;cRx.value=c.rx;cKey.value=c.key;
   cSrc.value=c.src;cDst.value=c.dst;cChunk.value=c.chunk;
+  cWrite.value=c.write;cTimeout.value=c.timeout;
   cMap.value=JSON.stringify(c.map,null,2);fSrc.value=c.src;fDst.value=c.dst;}
 document.getElementById("cSave").onclick=()=>{
   try{S.cfg={svc:cSvc.value.trim(),tx:cTx.value.trim(),rx:cRx.value.trim(),
     key:cKey.value.trim().replace(/0x/gi,""),src:cSrc.value.trim(),dst:cDst.value.trim(),
-    chunk:parseInt(cChunk.value,10)||20,map:JSON.parse(cMap.value)};
+    chunk:parseInt(cChunk.value,10)||20,write:cWrite.value,timeout:parseInt(cTimeout.value,10)||1500,
+    map:JSON.parse(cMap.value)};
     localStorage.setItem("g3cfg",JSON.stringify(S.cfg));loadCfg();log("ok","config saved");
   }catch(e){alert("bad config: "+e.message);}};
 document.getElementById("cReset").onclick=()=>{
